@@ -1,55 +1,77 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import type { User } from "@supabase/supabase-js";
+import { supabase } from "@/lib/supabase";
+import { Session, User } from "@supabase/supabase-js";
+import { toast } from "sonner";
 
 export function useAuth() {
+  const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        const u = session?.user ?? null;
-        setUser(u);
-        if (u) {
-          const { data } = await supabase
-            .from("user_roles")
-            .select("role")
-            .eq("user_id", u.id)
-            .eq("role", "admin");
-          setIsAdmin((data && data.length > 0) || false);
-        } else {
-          setIsAdmin(false);
-        }
-        setLoading(false);
-      }
-    );
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      setIsAdmin(!!session?.user);
+      setLoading(false);
+    });
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      const u = session?.user ?? null;
-      setUser(u);
-      if (u) {
-        const { data } = await supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", u.id)
-          .eq("role", "admin");
-        setIsAdmin((data && data.length > 0) || false);
-      }
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      setIsAdmin(!!session?.user);
       setLoading(false);
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  const signIn = (email: string, password: string) =>
-    supabase.auth.signInWithPassword({ email, password });
+  const signIn = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    if (error) throw error;
+    toast.success("Welcome back!");
+  };
 
-  const signUp = (email: string, password: string) =>
-    supabase.auth.signUp({ email, password, options: { emailRedirectTo: window.location.origin } });
+  const signUp = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+    });
+    if (error) throw error;
+    toast.success("Check your email to confirm sign up!");
+  };
 
-  const signOut = () => supabase.auth.signOut();
+  const signOut = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+       toast.error(error.message);
+    } else {
+       toast.success("Signed out successfully");
+    }
+  };
 
-  return { user, isAdmin, loading, signIn, signUp, signOut };
+  const updatePassword = async (password: string) => {
+    const { error } = await supabase.auth.updateUser({ password });
+    if (error) throw error;
+    toast.success("Password updated successfully");
+  };
+
+  return {
+    user,
+    session,
+    loading,
+    signIn,
+    signUp,
+    signOut,
+    updatePassword,
+    isAdmin,
+  };
 }

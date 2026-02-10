@@ -34,7 +34,7 @@ export default function Navbar({
         <Link to="/" className="flex items-center gap-2 text-xl font-bold" style={{
         fontFamily: "var(--font-heading)"
       }}>
-          <Leaf className="h-6 w-6 text-primary" />
+          <img src="/Logo.png" alt="Pure Rooted Logo" className="h-8 w-8 object-contain" />
           <span>Pure Rooted</span>
         </Link>
 

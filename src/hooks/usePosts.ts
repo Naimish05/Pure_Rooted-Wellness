@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
 
 export interface Post {
   id: string;
@@ -25,6 +25,7 @@ export function usePublishedPosts() {
         .select("*")
         .eq("published", true)
         .order("created_at", { ascending: false });
+
       if (error) throw error;
       return data as Post[];
     },
@@ -41,6 +42,7 @@ export function usePostsByCategory(category: string) {
         .eq("category", category)
         .eq("published", true)
         .order("created_at", { ascending: false });
+
       if (error) throw error;
       return data as Post[];
     },
@@ -55,9 +57,10 @@ export function usePostBySlug(slug: string) {
         .from("posts")
         .select("*")
         .eq("slug", slug)
-        .maybeSingle();
-      if (error) throw error;
-      return data as Post | null;
+        .single();
+      
+      if (error) return null; // Handle not found gracefully
+      return data as Post;
     },
   });
 }
@@ -70,6 +73,7 @@ export function useAllPosts() {
         .from("posts")
         .select("*")
         .order("created_at", { ascending: false });
+
       if (error) throw error;
       return data as Post[];
     },
@@ -79,14 +83,19 @@ export function useAllPosts() {
 export function useCreatePost() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (post: Omit<Post, "id" | "created_at" | "updated_at">) => {
-      const { data, error } = await supabase.from("posts").insert(post).select().single();
+    mutationFn: async (newPost: Omit<Post, "id" | "created_at" | "updated_at">) => {
+      const { data, error } = await supabase
+        .from("posts")
+        .insert([newPost])
+        .select()
+        .single();
+
       if (error) throw error;
       return data;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["posts"] });
-      toast.success("Post created!");
+      toast.success("Post created via Supabase!");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -95,14 +104,20 @@ export function useCreatePost() {
 export function useUpdatePost() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...post }: Partial<Post> & { id: string }) => {
-      const { data, error } = await supabase.from("posts").update(post).eq("id", id).select().single();
+    mutationFn: async ({ id, ...updates }: Partial<Post> & { id: string }) => {
+      const { data, error } = await supabase
+        .from("posts")
+        .update(updates)
+        .eq("id", id)
+        .select()
+        .single();
+
       if (error) throw error;
       return data;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["posts"] });
-      toast.success("Post updated!");
+      toast.success("Post updated via Supabase!");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -112,7 +127,11 @@ export function useDeletePost() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("posts").delete().eq("id", id);
+      const { error } = await supabase
+        .from("posts")
+        .delete()
+        .eq("id", id);
+
       if (error) throw error;
     },
     onSuccess: () => {
@@ -120,14 +139,5 @@ export function useDeletePost() {
       toast.success("Post deleted!");
     },
     onError: (e: Error) => toast.error(e.message),
-  });
-}
-
-export function uploadCoverImage(file: File) {
-  const path = `${Date.now()}-${file.name}`;
-  return supabase.storage.from("covers").upload(path, file).then(({ data, error }) => {
-    if (error) throw error;
-    const { data: urlData } = supabase.storage.from("covers").getPublicUrl(data.path);
-    return urlData.publicUrl;
   });
 }

@@ -13,7 +13,7 @@ export default function About() {
     <section className="py-16">
       <div className="container mx-auto max-w-3xl px-4">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center">
-          <Leaf className="mx-auto mb-4 h-10 w-10 text-primary" />
+          <img src="/Logo.png" alt="Rooted Logo" className="mx-auto mb-4 h-12 w-12 object-contain" />
           <h1 className="mb-4 text-3xl font-bold md:text-4xl" style={{ fontFamily: "var(--font-heading)" }}>
             About Rooted
           </h1>

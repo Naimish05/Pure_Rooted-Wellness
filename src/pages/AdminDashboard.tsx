@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAllPosts, useDeletePost } from "@/hooks/usePosts";
 import { Button } from "@/components/ui/button";
 import { CATEGORIES } from "@/lib/constants";
-import { Leaf, Plus, Edit, Trash2, LogOut, Eye, EyeOff } from "lucide-react";
+import { Leaf, Plus, Edit, Trash2, LogOut, Eye, EyeOff, ChevronDown } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,12 +16,45 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function AdminDashboard() {
-  const { user, isAdmin, loading: authLoading, signOut } = useAuth();
+  const { user, isAdmin, loading: authLoading, signOut, updatePassword } = useAuth();
   const { data: posts, isLoading } = useAllPosts();
   const deletePost = useDeletePost();
   const navigate = useNavigate();
+
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleUpdatePassword = async () => {
+    if (!newPassword || newPassword.length < 6) return;
+    setLoading(true);
+    try {
+      await updatePassword(newPassword);
+      setIsPasswordDialogOpen(false);
+      setNewPassword("");
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (authLoading) return <div className="flex min-h-screen items-center justify-center">Loading…</div>;
   if (!user) { navigate("/admin/login"); return null; }
@@ -40,11 +73,58 @@ export default function AdminDashboard() {
       <header className="border-b border-border bg-background/80 backdrop-blur-md">
         <div className="container mx-auto flex items-center justify-between px-4 py-3">
           <Link to="/" className="flex items-center gap-2 text-xl font-bold" style={{ fontFamily: "var(--font-heading)" }}>
-            <Leaf className="h-6 w-6 text-primary" /> Pure Rooted
+            <img src="/Logo.png" alt="Pure Rooted Logo" className="h-8 w-8 object-contain" /> Pure Rooted
           </Link>
           <div className="flex items-center gap-2">
-            <span className="hidden text-sm text-muted-foreground sm:inline">{user.email}</span>
-            <Button variant="ghost" size="icon" onClick={() => signOut().then(() => navigate("/admin/login"))}>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="hidden gap-2 text-sm text-muted-foreground sm:flex">
+                  {user.email} <ChevronDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setIsPasswordDialogOpen(true)}>
+                  Update Password
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => signOut().then(() => navigate("/admin/login"))}>
+                  Log Out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Update Password</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="new-password">New Password</Label>
+                    <div className="relative">
+                       <Input 
+                          id="new-password" 
+                          type={showPassword ? "text" : "password"} 
+                          value={newPassword} 
+                          onChange={(e) => setNewPassword(e.target.value)} 
+                          className="pr-10"
+                       />
+                       <button 
+                          type="button" 
+                          onClick={() => setShowPassword(!showPassword)} 
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        >
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                    </div>
+                  </div>
+                  <Button onClick={handleUpdatePassword} disabled={loading}>
+                    {loading ? "Updating..." : "Update Password"}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            <Button variant="ghost" size="icon" className="sm:hidden" onClick={() => signOut().then(() => navigate("/admin/login"))}>
               <LogOut className="h-4 w-4" />
             </Button>
           </div>

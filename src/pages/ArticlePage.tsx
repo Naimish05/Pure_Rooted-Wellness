@@ -20,6 +20,13 @@ export default function ArticlePage() {
 
   const renderContent = (text: string) => {
     return text.split("\n\n").map((block, i) => {
+      if (block.startsWith("### ")) {
+        return (
+          <h3 key={i} className="mb-2 mt-6 text-lg font-bold" style={{ fontFamily: "var(--font-heading)" }}>
+            {block.replace("### ", "")}
+          </h3>
+        );
+      }
       if (block.startsWith("## ")) {
         return (
           <h2 key={i} className="mb-3 mt-8 text-xl font-bold" style={{ fontFamily: "var(--font-heading)" }}>

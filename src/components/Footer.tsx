@@ -9,7 +9,7 @@ export default function Footer() {
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <Link to="/" className="flex items-center gap-2 text-lg font-bold" style={{ fontFamily: "var(--font-heading)" }}>
-              <Leaf className="h-5 w-5 text-primary" />
+              <img src="/Logo.png" alt="Rooted Logo" className="h-6 w-6 object-contain" />
               Rooted
             </Link>
             <p className="mt-3 text-sm text-muted-foreground">

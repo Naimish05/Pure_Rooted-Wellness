@@ -4,11 +4,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Leaf } from "lucide-react";
+import { Leaf, Eye, EyeOff } from "lucide-react";
 
 export default function AdminLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -22,23 +23,26 @@ export default function AdminLogin() {
     setMessage("");
     setLoading(true);
 
-    if (isSignUp) {
-      const { error: err } = await signUp(email, password);
-      if (err) setError(err.message);
-      else setMessage("Check your email to confirm your account, then log in.");
-    } else {
-      const { error: err } = await signIn(email, password);
-      if (err) setError(err.message);
-      else navigate("/admin");
+    try {
+      if (isSignUp) {
+        await signUp(email, password);
+        setMessage("Check your email for the confirmation link.");
+      } else {
+        await signIn(email, password);
+        navigate("/admin");
+      }
+    } catch (err: any) {
+      setError(err.message || "An error occurred");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center">
-          <Leaf className="mx-auto h-10 w-10 text-primary" />
+          <img src="/Logo.png" alt="Pure Rooted Logo" className="mx-auto h-12 w-12 object-contain" />
           <h1 className="mt-3 text-2xl font-bold" style={{ fontFamily: "var(--font-heading)" }}>
             Admin Login
           </h1>
@@ -53,7 +57,24 @@ export default function AdminLogin() {
           </div>
           <div>
             <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
+            <div className="relative">
+              <Input 
+                id="password" 
+                type={showPassword ? "text" : "password"} 
+                value={password} 
+                onChange={(e) => setPassword(e.target.value)} 
+                required 
+                minLength={6} 
+                className="pr-10"
+              />
+              <button 
+                type="button" 
+                onClick={() => setShowPassword(!showPassword)} 
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
           {message && <p className="text-sm text-primary">{message}</p>}

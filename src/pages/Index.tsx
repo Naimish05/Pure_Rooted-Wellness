@@ -6,26 +6,72 @@ import { usePublishedPosts } from "@/hooks/usePosts";
 import ArticleCard from "@/components/ArticleCard";
 
 export default function Index() {
-  const { data: posts, isLoading } = usePublishedPosts();
+  const { data: posts, isLoading, error } = usePublishedPosts();
+
+  if (error) {
+    return (
+      <div className="flex min-h-[50vh] flex-col items-center justify-center p-4 text-center">
+        <h2 className="mb-2 text-2xl font-bold text-destructive">
+          Error Loading Posts
+        </h2>
+        <p className="text-muted-foreground">{error.message}</p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Check your Supabase connection and tables.
+        </p>
+      </div>
+    );
+  }
+
   const featured = posts?.[0];
-  const recent = posts?.slice(1, 7) ?? [];
+  const recent = posts?.slice(0, 6) ?? [];
 
   return (
     <>
       {/* Hero */}
       <section className="relative overflow-hidden bg-primary/5 py-20 lg:py-[60px]">
         <div className="container mx-auto px-4">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="mx-auto max-w-3xl text-center">
-            <h1 className="mb-4 text-4xl font-bold leading-tight md:text-5xl lg:text-6xl" style={{ fontFamily: "var(--font-heading)" }}>
-              Wellness, <span className="text-primary">Rooted</span> in Science
-            </h1>
-            <p className="mb-8 text-lg text-muted-foreground md:text-xl">
-              Nourish your body, calm your mind, and build habits that last. Evidence-based guidance for a healthier, more intentional life.
-            </p>
-            {featured && (
-              <Link to={`/article/${featured.slug}`} className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 font-medium text-primary-foreground transition-transform hover:scale-105">
-                Read Featured Article <ArrowRight className="h-4 w-4" />
-              </Link>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="mx-auto max-w-3xl text-center"
+          >
+            {featured ? (
+              <>
+                <span className="mb-4 inline-block rounded-full bg-primary/10 px-4 py-1.5 text-sm font-semibold text-primary">
+                  Featured
+                </span>
+                <h1
+                  className="mb-4 text-4xl font-bold leading-tight md:text-5xl lg:text-6xl"
+                  style={{ fontFamily: "var(--font-heading)" }}
+                >
+                  {featured.title}
+                </h1>
+                <p className="mb-8 text-lg text-muted-foreground md:text-xl">
+                  {featured.excerpt}
+                </p>
+                <Link
+                  to={`/article/${featured.slug}`}
+                  className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 font-medium text-primary-foreground transition-transform hover:scale-105"
+                >
+                  Read Article <ArrowRight className="h-4 w-4" />
+                </Link>
+              </>
+            ) : (
+              <>
+                <h1
+                  className="mb-4 text-4xl font-bold leading-tight md:text-5xl lg:text-6xl"
+                  style={{ fontFamily: "var(--font-heading)" }}
+                >
+                  Wellness, <span className="text-primary">Rooted</span> in
+                  Science
+                </h1>
+                <p className="mb-8 text-lg text-muted-foreground md:text-xl">
+                  Nourish your body, calm your mind, and build habits that last.
+                  Evidence-based guidance for a healthier, more intentional
+                  life.
+                </p>
+              </>
             )}
           </motion.div>
         </div>
@@ -34,16 +80,34 @@ export default function Index() {
       {/* Categories */}
       <section className="py-[40px]">
         <div className="container mx-auto px-[20px]">
-          <h2 className="mb-8 text-center text-2xl font-bold md:text-3xl" style={{ fontFamily: "var(--font-heading)" }}>
+          <h2
+            className="mb-8 text-center text-2xl font-bold md:text-3xl"
+            style={{ fontFamily: "var(--font-heading)" }}
+          >
             Explore Topics
           </h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {CATEGORIES.map((cat, i) => (
-              <motion.div key={cat.slug} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1, duration: 0.4 }}>
-                <Link to={`/category/${cat.slug}`} className="flex flex-col items-center gap-3 rounded-xl border border-border bg-card p-6 text-center transition-shadow hover:shadow-lg">
+              <motion.div
+                key={cat.slug}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.1, duration: 0.4 }}
+              >
+                <Link
+                  to={`/category/${cat.slug}`}
+                  className="flex flex-col items-center gap-3 rounded-xl border border-border bg-card p-6 text-center transition-shadow hover:shadow-lg"
+                >
                   <span className="text-4xl">{cat.icon}</span>
-                  <h3 className="font-semibold" style={{ fontFamily: "var(--font-heading)" }}>{cat.title}</h3>
-                  <p className="text-sm text-muted-foreground">{cat.description}</p>
+                  <h3
+                    className="font-semibold"
+                    style={{ fontFamily: "var(--font-heading)" }}
+                  >
+                    {cat.title}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {cat.description}
+                  </p>
                 </Link>
               </motion.div>
             ))}
@@ -54,11 +118,16 @@ export default function Index() {
       {/* Recent Articles */}
       <section className="bg-muted/50 py-[50px]">
         <div className="container mx-auto px-4">
-          <h2 className="mb-8 text-center text-2xl font-bold md:text-3xl" style={{ fontFamily: "var(--font-heading)" }}>
+          <h2
+            className="mb-8 text-center text-2xl font-bold md:text-3xl"
+            style={{ fontFamily: "var(--font-heading)" }}
+          >
             Recent Articles
           </h2>
           {isLoading ? (
-            <p className="text-center text-muted-foreground">Loading articles…</p>
+            <p className="text-center text-muted-foreground">
+              Loading articles…
+            </p>
           ) : recent.length > 0 ? (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {recent.map((a) => (
@@ -66,7 +135,9 @@ export default function Index() {
               ))}
             </div>
           ) : (
-            <p className="text-center text-muted-foreground">No articles yet.</p>
+            <p className="text-center text-muted-foreground">
+              No articles yet.
+            </p>
           )}
         </div>
       </section>
@@ -75,13 +146,20 @@ export default function Index() {
       <section className="py-16">
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-2xl rounded-2xl bg-primary/10 p-8 text-center md:p-12">
-            <h2 className="mb-3 text-2xl font-bold" style={{ fontFamily: "var(--font-heading)" }}>
+            <h2
+              className="mb-3 text-2xl font-bold"
+              style={{ fontFamily: "var(--font-heading)" }}
+            >
               Start Your Wellness Journey
             </h2>
             <p className="mb-6 text-muted-foreground">
-              Explore our articles on nutrition, yoga, routines, and mental wellness — all grounded in science and practical wisdom.
+              Explore our articles on nutrition, yoga, routines, and mental
+              wellness — all grounded in science and practical wisdom.
             </p>
-            <Link to="/category/nutrition" className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 font-medium text-primary-foreground transition-transform hover:scale-105">
+            <Link
+              to="/category/nutrition"
+              className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 font-medium text-primary-foreground transition-transform hover:scale-105"
+            >
               Explore Nutrition <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
