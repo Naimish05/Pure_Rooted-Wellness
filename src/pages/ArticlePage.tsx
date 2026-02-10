@@ -1,24 +1,23 @@
 import { useParams, Navigate, Link } from "react-router-dom";
 import { ArrowLeft, Clock } from "lucide-react";
 import { motion } from "framer-motion";
-import { getArticleBySlug, getArticlesByCategory, getCategoryBySlug, type CategorySlug } from "@/lib/constants";
+import { getCategoryBySlug } from "@/lib/constants";
+import { usePostBySlug, usePostsByCategory } from "@/hooks/usePosts";
 import ShareButtons from "@/components/ShareButtons";
 import ArticleCard from "@/components/ArticleCard";
 
 export default function ArticlePage() {
   const { slug } = useParams<{ slug: string }>();
-  const article = getArticleBySlug(slug || "");
+  const { data: article, isLoading } = usePostBySlug(slug || "");
 
+  if (isLoading) return <div className="flex min-h-[50vh] items-center justify-center text-muted-foreground">Loading…</div>;
   if (!article) return <Navigate to="/404" replace />;
 
   const cat = getCategoryBySlug(article.category);
-  const related = getArticlesByCategory(article.category as CategorySlug)
-    .filter((a) => a.id !== article.id)
-    .slice(0, 3);
-
   const url = typeof window !== "undefined" ? window.location.href : "";
 
-  // Simple markdown-ish rendering: split by \n\n, handle ## headings and **bold**
+  const readingTime = Math.max(1, Math.ceil(article.content.split(/\s+/).length / 200));
+
   const renderContent = (text: string) => {
     return text.split("\n\n").map((block, i) => {
       if (block.startsWith("## ")) {
@@ -28,7 +27,6 @@ export default function ArticlePage() {
           </h2>
         );
       }
-      // Handle list items
       if (block.match(/^(\d+\.\s|\-\s)/m)) {
         const items = block.split("\n").filter(Boolean);
         const isOrdered = items[0]?.match(/^\d+\./);
@@ -71,17 +69,19 @@ export default function ArticlePage() {
             <div className="mb-6 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
               <div className="flex items-center gap-1">
                 <Clock className="h-4 w-4" />
-                {article.readingTime} min read
+                {readingTime} min read
               </div>
               <span>
-                {new Date(article.publishedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+                {new Date(article.created_at).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
               </span>
             </div>
           </motion.div>
 
-          <div className="mb-8 overflow-hidden rounded-xl">
-            <img src={article.coverImage} alt={article.title} className="w-full object-cover" />
-          </div>
+          {article.cover_image && (
+            <div className="mb-8 overflow-hidden rounded-xl">
+              <img src={article.cover_image} alt={article.title} className="w-full object-cover" />
+            </div>
+          )}
 
           <div className="prose-custom mb-8">
             {renderContent(article.content)}
@@ -93,20 +93,29 @@ export default function ArticlePage() {
         </div>
       </article>
 
-      {related.length > 0 && (
-        <section className="bg-muted/50 py-16">
-          <div className="container mx-auto px-4">
-            <h2 className="mb-8 text-center text-2xl font-bold" style={{ fontFamily: "var(--font-heading)" }}>
-              Related Articles
-            </h2>
-            <div className="mx-auto grid max-w-4xl gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {related.map((a) => (
-                <ArticleCard key={a.id} article={a} />
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
+      <RelatedArticles category={article.category} currentId={article.id} />
     </>
+  );
+}
+
+function RelatedArticles({ category, currentId }: { category: string; currentId: string }) {
+  const { data: posts } = usePostsByCategory(category);
+  const related = posts?.filter((a) => a.id !== currentId).slice(0, 3) ?? [];
+
+  if (related.length === 0) return null;
+
+  return (
+    <section className="bg-muted/50 py-16">
+      <div className="container mx-auto px-4">
+        <h2 className="mb-8 text-center text-2xl font-bold" style={{ fontFamily: "var(--font-heading)" }}>
+          Related Articles
+        </h2>
+        <div className="mx-auto grid max-w-4xl gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {related.map((a) => (
+            <ArticleCard key={a.id} article={a} />
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }
