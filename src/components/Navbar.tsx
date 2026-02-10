@@ -34,7 +34,7 @@ export default function Navbar({
         <Link to="/" className="flex items-center gap-2 text-xl font-bold" style={{
         fontFamily: "var(--font-heading)"
       }}>
-          <img src="/Logo.png" alt="Pure Rooted Logo" className="h-8 w-8 object-contain" />
+          <img src="/Logo.webp" alt="Pure Rooted Logo" className="h-8 w-8 object-contain" />
           <span>Pure Rooted</span>
         </Link>
 
