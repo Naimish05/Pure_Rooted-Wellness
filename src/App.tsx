@@ -10,6 +10,9 @@ import CategoryPage from "@/pages/CategoryPage";
 import ArticlePage from "@/pages/ArticlePage";
 import BMICalculator from "@/pages/BMICalculator";
 import About from "@/pages/About";
+import AdminLogin from "@/pages/AdminLogin";
+import AdminDashboard from "@/pages/AdminDashboard";
+import AdminPostEditor from "@/pages/AdminPostEditor";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,6 +34,9 @@ const App = () => {
               <Route path="/bmi" element={<BMICalculator />} />
               <Route path="/about" element={<About />} />
             </Route>
+            <Route path="/admin/login" element={<AdminLogin />} />
+            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin/post/:id" element={<AdminPostEditor />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

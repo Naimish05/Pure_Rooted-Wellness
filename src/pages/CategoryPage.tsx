@@ -1,5 +1,6 @@
 import { useParams, Navigate } from "react-router-dom";
-import { getCategoryBySlug, getArticlesByCategory, type CategorySlug } from "@/lib/constants";
+import { getCategoryBySlug } from "@/lib/constants";
+import { usePostsByCategory } from "@/hooks/usePosts";
 import ArticleCard from "@/components/ArticleCard";
 import { motion } from "framer-motion";
 
@@ -9,7 +10,7 @@ export default function CategoryPage() {
 
   if (!category) return <Navigate to="/404" replace />;
 
-  const articles = getArticlesByCategory(category.slug as CategorySlug);
+  const { data: posts, isLoading } = usePostsByCategory(category.slug);
 
   return (
     <>
@@ -27,9 +28,11 @@ export default function CategoryPage() {
 
       <section className="py-16">
         <div className="container mx-auto px-4">
-          {articles.length > 0 ? (
+          {isLoading ? (
+            <p className="text-center text-muted-foreground">Loading articles…</p>
+          ) : posts && posts.length > 0 ? (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {articles.map((a) => (
+              {posts.map((a) => (
                 <ArticleCard key={a.id} article={a} />
               ))}
             </div>
