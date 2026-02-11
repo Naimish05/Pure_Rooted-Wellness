@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/hooks/useAuth";
 import { useAllPosts, useDeletePost } from "@/hooks/usePosts";
 import { Button } from "@/components/ui/button";
 import { CATEGORIES } from "@/lib/constants";
-import { Leaf, Plus, Edit, Trash2, LogOut, Eye, EyeOff, ChevronDown } from "lucide-react";
+import { Leaf, Plus, Edit, Trash2, LogOut, Eye, EyeOff, ChevronDown, Sun, Moon } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,6 +37,7 @@ export default function AdminDashboard() {
   const { data: posts, isLoading } = useAllPosts();
   const deletePost = useDeletePost();
   const navigate = useNavigate();
+  const { dark, toggle } = useTheme();
 
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const [newPassword, setNewPassword] = useState("");
@@ -76,6 +78,9 @@ export default function AdminDashboard() {
             <img src="/Logo.webp" alt="Pure Rooted Logo" className="h-8 w-8 object-contain" /> Pure Rooted
           </Link>
           <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" onClick={toggle} title="Toggle Theme">
+              {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="hidden gap-2 text-sm text-muted-foreground sm:flex">

@@ -6,7 +6,7 @@ export default function Footer() {
   return (
     <footer className="border-t border-border bg-card">
       <div className="container mx-auto px-4 py-12">
-        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
           <div>
             <Link to="/" className="flex items-center gap-2 text-lg font-bold" style={{ fontFamily: "var(--font-heading)" }}>
               <img src="/Logo.webp" alt="Rooted Logo" className="h-6 w-6 object-contain" />
@@ -34,10 +34,6 @@ export default function Footer() {
               <li><Link to="/bmi" className="text-sm transition-colors hover:text-primary">BMI Calculator</Link></li>
               <li><Link to="/about" className="text-sm transition-colors hover:text-primary">About</Link></li>
             </ul>
-          </div>
-          <div>
-            <h4 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">Stay Connected</h4>
-            <p className="text-sm text-muted-foreground">Follow us for daily wellness tips and inspiration.</p>
           </div>
         </div>
         <div className="mt-10 border-t border-border pt-6 text-center text-sm text-muted-foreground">

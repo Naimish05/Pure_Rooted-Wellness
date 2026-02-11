@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { CATEGORIES } from "@/lib/constants";
-import { ArrowLeft, Link as LinkIcon, Loader2, Bold, Italic, Heading2, Heading3, List, Quote, Eye, Edit } from "lucide-react";
+import { ArrowLeft, Link as LinkIcon, Loader2, Bold, Italic, Heading2, Heading3, List, Quote, Eye, Edit, Image as ImageIcon } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 
@@ -100,6 +100,38 @@ export default function AdminPostEditor() {
     }
   };
 
+  const handleInlineImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Image must be under 2MB");
+      return;
+    }
+
+    try {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `inline-${Math.random()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("blog-images")
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from("blog-images")
+        .getPublicUrl(filePath);
+
+      const markdown = `![Image](${data.publicUrl})`;
+      insertMarkdown(markdown);
+      toast.success("Image inserted!");
+    } catch (error: any) {
+      toast.error("Error uploading image: " + error.message);
+    }
+  };
+
   const handleSave = async () => {
     if (!title || !slug || !content || !excerpt) return;
     const postData = {
@@ -174,48 +206,115 @@ export default function AdminPostEditor() {
   const renderPreview = (text: string) => {
     if (!text) return <p className="text-muted-foreground italic">Nothing to preview yet.</p>;
 
-    return text.split("\n\n").map((block, i) => {
-      if (block.startsWith("### ")) {
-        return (
-          <h3 key={i} className="mb-2 mt-4 text-lg font-bold" style={{ fontFamily: "var(--font-heading)" }}>
-            {block.replace("### ", "")}
-          </h3>
+    const lines = text.split("\n");
+    const blocks: JSX.Element[] = [];
+    let currentParagraph: string[] = [];
+    let currentList: string[] = [];
+    let isOrderedList = false;
+
+    const flushParagraph = () => {
+      if (currentParagraph.length > 0) {
+        blocks.push(
+          <p key={`p-${blocks.length}`} className="mb-4 leading-relaxed text-foreground/90 whitespace-pre-wrap" dangerouslySetInnerHTML={{
+             __html: currentParagraph.join("\n")
+               .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+               .replace(/\*(.*?)\*/g, "<em>$1</em>")
+               .replace(/!\[(.*?)\]\((.*?)\)/g, '<img src="$2" alt="$1" class="rounded-lg my-4 max-w-full" />')
+          }} />
         );
+        currentParagraph = [];
       }
-      if (block.startsWith("## ")) {
-        return (
-          <h2 key={i} className="mb-3 mt-6 text-xl font-bold" style={{ fontFamily: "var(--font-heading)" }}>
-            {block.replace("## ", "")}
-          </h2>
-        );
-      }
-      if (block.match(/^(\d+\.\s|\-\s)/m)) {
-        const items = block.split("\n").filter(Boolean);
-        const isOrdered = items[0]?.match(/^\d+\./);
-        const Tag = isOrdered ? "ol" : "ul";
-        return (
-          <Tag key={i} className={`mb-4 space-y-1 pl-6 ${isOrdered ? "list-decimal" : "list-disc"}`}>
-            {items.map((item, j) => (
+    };
+
+    const flushList = () => {
+      if (currentList.length > 0) {
+        const Tag = isOrderedList ? "ol" : "ul";
+        blocks.push(
+          <Tag key={`l-${blocks.length}`} className={`mb-4 space-y-1 pl-6 ${isOrderedList ? "list-decimal" : "list-disc"}`}>
+            {currentList.map((item, j) => (
               <li key={j} className="text-foreground/90" dangerouslySetInnerHTML={{
-                __html: item.replace(/^(\d+\.\s|\-\s)/, "").replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+                __html: item.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>").replace(/\*(.*?)\*/g, "<em>$1</em>")
               }} />
             ))}
           </Tag>
         );
+        currentList = [];
       }
-       if (block.startsWith("> ")) {
-        return (
-          <blockquote key={i} className="border-l-4 border-primary pl-4 italic text-muted-foreground my-4">
-            {block.replace(/^> /, "")}
+    };
+
+    lines.forEach((line, i) => {
+      const trimmed = line.trim();
+      
+      // Headers (Allowing no space after #)
+      const h3Match = line.match(/^###\s?(.*)/);
+      if (h3Match) {
+        flushParagraph();
+        flushList();
+        blocks.push(
+          <h3 key={`h3-${i}`} className="mb-2 mt-4 text-lg font-bold" style={{ fontFamily: "var(--font-heading)" }}>
+            {h3Match[1]}
+          </h3>
+        );
+        return;
+      }
+
+      const h2Match = line.match(/^##\s?(.*)/);
+      if (h2Match) {
+        flushParagraph();
+        flushList();
+        blocks.push(
+          <h2 key={`h2-${i}`} className="mb-3 mt-6 text-xl font-bold" style={{ fontFamily: "var(--font-heading)" }}>
+            {h2Match[1]}
+          </h2>
+        );
+        return;
+      }
+
+      // Blockquotes (Relaxed: allow >Text defined)
+      const quoteMatch = line.match(/^>\s?(.*)/);
+      if (quoteMatch) {
+        flushParagraph();
+        flushList();
+        blocks.push(
+          <blockquote key={`bq-${i}`} className="border-l-4 border-primary pl-4 italic text-muted-foreground my-4">
+            {quoteMatch[1]}
           </blockquote>
         );
+        return;
       }
-      return (
-        <p key={i} className="mb-4 leading-relaxed text-foreground/90" dangerouslySetInnerHTML={{
-          __html: block.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>").replace(/\*(.*?)\*/g, "<em>$1</em>")
-        }} />
-      );
+
+      // Lists (Relaxed: allow -Item or 1.Item)
+      const listMatch = line.match(/^(\d+\.|-|\*)\s?(.*)/);
+      if (listMatch) {
+        flushParagraph();
+        // Check if we are switching list types or starting a new one
+        const newIsOrdered = /^\d+\./.test(listMatch[1]);
+        if (currentList.length > 0 && newIsOrdered !== isOrderedList) {
+             flushList(); // Flush previous list if type changed
+        }
+        
+        isOrderedList = newIsOrdered;
+        currentList.push(listMatch[2]);
+        return;
+      }
+
+      // If it's an empty line, flush everything (paragraph break)
+      if (trimmed === "") {
+        flushParagraph();
+        flushList();
+        return;
+      }
+
+      // Otherwise, it's a paragraph line
+      flushList(); // If we were in a list, close it
+      currentParagraph.push(line);
     });
+
+    // Final flush
+    flushParagraph();
+    flushList();
+
+    return blocks;
   };
 
   return (
@@ -298,6 +397,17 @@ export default function AdminPostEditor() {
                 <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => insertMarkdown("> ")} title="Quote">
                   <Quote className="h-4 w-4" />
                 </Button>
+                <div className="mx-1 h-4 w-px bg-border" />
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => document.getElementById("inline-image-upload")?.click()} title="Insert Image">
+                  <ImageIcon className="h-4 w-4" />
+                </Button>
+                <input
+                  type="file"
+                  id="inline-image-upload"
+                  className="hidden"
+                  accept="image/*"
+                  onChange={handleInlineImageUpload}
+                />
               </div>
               )}
             </div>

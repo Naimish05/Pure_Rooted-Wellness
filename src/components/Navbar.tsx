@@ -4,14 +4,10 @@ import { useState } from "react";
 import { CATEGORIES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
-interface NavbarProps {
-  dark: boolean;
-  toggle: () => void;
-}
-export default function Navbar({
-  dark,
-  toggle
-}: NavbarProps) {
+import { useTheme } from "@/hooks/useTheme";
+
+export default function Navbar() {
+  const { dark, toggle } = useTheme();
   const [open, setOpen] = useState(false);
   const {
     pathname

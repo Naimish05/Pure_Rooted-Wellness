@@ -43,41 +43,117 @@ export default function ArticlePage() {
   const readingTime = Math.max(1, Math.ceil(article.content.split(/\s+/).length / 200));
 
   const renderContent = (text: string) => {
-    return text.split("\n\n").map((block, i) => {
-      if (block.startsWith("### ")) {
-        return (
-          <h3 key={i} className="mb-2 mt-6 text-lg font-bold" style={{ fontFamily: "var(--font-heading)" }}>
-            {block.replace("### ", "")}
-          </h3>
+    if (!text) return null;
+
+    const lines = text.split("\n");
+    const blocks: JSX.Element[] = [];
+    let currentParagraph: string[] = [];
+    let currentList: string[] = [];
+    let isOrderedList = false;
+
+    const flushParagraph = () => {
+      if (currentParagraph.length > 0) {
+        blocks.push(
+          <p key={`p-${blocks.length}`} className="mb-4 leading-relaxed text-foreground/90 whitespace-pre-wrap" dangerouslySetInnerHTML={{
+             __html: currentParagraph.join("\n")
+               .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+               .replace(/\*(.*?)\*/g, "<em>$1</em>")
+               .replace(/!\[(.*?)\]\((.*?)\)/g, '<img src="$2" alt="$1" class="rounded-lg my-4 max-w-full" />')
+          }} />
         );
+        currentParagraph = [];
       }
-      if (block.startsWith("## ")) {
-        return (
-          <h2 key={i} className="mb-3 mt-8 text-xl font-bold" style={{ fontFamily: "var(--font-heading)" }}>
-            {block.replace("## ", "")}
-          </h2>
-        );
-      }
-      if (block.match(/^(\d+\.\s|\-\s)/m)) {
-        const items = block.split("\n").filter(Boolean);
-        const isOrdered = items[0]?.match(/^\d+\./);
-        const Tag = isOrdered ? "ol" : "ul";
-        return (
-          <Tag key={i} className={`mb-4 space-y-1 pl-6 ${isOrdered ? "list-decimal" : "list-disc"}`}>
-            {items.map((item, j) => (
+    };
+
+    const flushList = () => {
+      if (currentList.length > 0) {
+        const Tag = isOrderedList ? "ol" : "ul";
+        blocks.push(
+          <Tag key={`l-${blocks.length}`} className={`mb-4 space-y-1 pl-6 ${isOrderedList ? "list-decimal" : "list-disc"}`}>
+            {currentList.map((item, j) => (
               <li key={j} className="text-foreground/90" dangerouslySetInnerHTML={{
-                __html: item.replace(/^(\d+\.\s|\-\s)/, "").replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+                __html: item.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>").replace(/\*(.*?)\*/g, "<em>$1</em>")
               }} />
             ))}
           </Tag>
         );
+        currentList = [];
       }
-      return (
-        <p key={i} className="mb-4 leading-relaxed text-foreground/90" dangerouslySetInnerHTML={{
-          __html: block.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>").replace(/\*(.*?)\*/g, "<em>$1</em>")
-        }} />
-      );
+    };
+
+    lines.forEach((line, i) => {
+      const trimmed = line.trim();
+      
+      // Headers (Allowing no space after #)
+      const h3Match = line.match(/^###\s?(.*)/);
+      if (h3Match) {
+        flushParagraph();
+        flushList();
+        blocks.push(
+          <h3 key={`h3-${i}`} className="mb-2 mt-6 text-lg font-bold" style={{ fontFamily: "var(--font-heading)" }}>
+            {h3Match[1]}
+          </h3>
+        );
+        return;
+      }
+
+      const h2Match = line.match(/^##\s?(.*)/);
+      if (h2Match) {
+        flushParagraph();
+        flushList();
+        blocks.push(
+          <h2 key={`h2-${i}`} className="mb-3 mt-8 text-xl font-bold" style={{ fontFamily: "var(--font-heading)" }}>
+            {h2Match[1]}
+          </h2>
+        );
+        return;
+      }
+
+      // Blockquotes (Relaxed: allow >Text defined)
+      const quoteMatch = line.match(/^>\s?(.*)/);
+      if (quoteMatch) {
+        flushParagraph();
+        flushList();
+        blocks.push(
+          <blockquote key={`bq-${i}`} className="border-l-4 border-primary pl-4 italic text-muted-foreground my-4">
+            {quoteMatch[1]}
+          </blockquote>
+        );
+        return;
+      }
+
+      // Lists (Relaxed: allow -Item or 1.Item)
+      const listMatch = line.match(/^(\d+\.|-|\*)\s?(.*)/);
+      if (listMatch) {
+        flushParagraph();
+        // Check if we are switching list types or starting a new one
+        const newIsOrdered = /^\d+\./.test(listMatch[1]);
+        if (currentList.length > 0 && newIsOrdered !== isOrderedList) {
+             flushList(); // Flush previous list if type changed
+        }
+        
+        isOrderedList = newIsOrdered;
+        currentList.push(listMatch[2]);
+        return;
+      }
+
+      // If it's an empty line, flush everything (paragraph break)
+      if (trimmed === "") {
+        flushParagraph();
+        flushList();
+        return;
+      }
+
+      // Otherwise, it's a paragraph line
+      flushList(); // If we were in a list, close it
+      currentParagraph.push(line);
     });
+
+    // Final flush
+    flushParagraph();
+    flushList();
+
+    return blocks;
   };
 
   return (
