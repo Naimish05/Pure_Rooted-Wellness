@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 
@@ -58,7 +59,7 @@ export function usePostBySlug(slug: string) {
         .select("*")
         .eq("slug", slug)
         .single();
-      
+
       if (error) return null; // Handle not found gracefully
       return data as Post;
     },
@@ -83,7 +84,9 @@ export function useAllPosts() {
 export function useCreatePost() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (newPost: Omit<Post, "id" | "created_at" | "updated_at">) => {
+    mutationFn: async (
+      newPost: Omit<Post, "id" | "created_at" | "updated_at">,
+    ) => {
       const { data, error } = await supabase
         .from("posts")
         .insert([newPost])
@@ -127,10 +130,7 @@ export function useDeletePost() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from("posts")
-        .delete()
-        .eq("id", id);
+      const { error } = await supabase.from("posts").delete().eq("id", id);
 
       if (error) throw error;
     },
@@ -140,4 +140,25 @@ export function useDeletePost() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+}
+
+export function useSubscribeToPosts() {
+  const qc = useQueryClient();
+
+  useEffect(() => {
+    const channel = supabase
+      .channel("public:posts")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "posts" },
+        () => {
+          qc.invalidateQueries({ queryKey: ["posts"] });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [qc]);
 }

@@ -15,6 +15,7 @@ import AdminLogin from "@/pages/AdminLogin";
 import AdminDashboard from "@/pages/AdminDashboard";
 import AdminPostEditor from "@/pages/AdminPostEditor";
 import NotFound from "@/pages/NotFound";
+import RealtimeSubscription from "@/components/RealtimeSubscription";
 
 const queryClient = new QueryClient();
 
@@ -23,6 +24,7 @@ const App = () => {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <RealtimeSubscription />
       <TooltipProvider>
         <Toaster />
         <Sonner />

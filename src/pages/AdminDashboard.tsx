@@ -73,7 +73,7 @@ export default function AdminDashboard() {
       <header className="border-b border-border bg-background/80 backdrop-blur-md">
         <div className="container mx-auto flex items-center justify-between px-4 py-3">
           <Link to="/" className="flex items-center gap-2 text-xl font-bold" style={{ fontFamily: "var(--font-heading)" }}>
-            <img src="/Logo.png" alt="Pure Rooted Logo" className="h-8 w-8 object-contain" /> Pure Rooted
+            <img src="/Logo.webp" alt="Pure Rooted Logo" className="h-8 w-8 object-contain" /> Pure Rooted
           </Link>
           <div className="flex items-center gap-2">
             <DropdownMenu>

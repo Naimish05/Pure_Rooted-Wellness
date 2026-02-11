@@ -1,5 +1,8 @@
-import { useParams, Navigate, Link } from "react-router-dom";
+import { useParams, Navigate, Link, useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 import { ArrowLeft, Clock } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { getCategoryBySlug } from "@/lib/constants";
 import { usePostBySlug, usePostsByCategory } from "@/hooks/usePosts";
@@ -9,6 +12,27 @@ import ArticleCard from "@/components/ArticleCard";
 export default function ArticlePage() {
   const { slug } = useParams<{ slug: string }>();
   const { data: article, isLoading } = usePostBySlug(slug || "");
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!article?.id) return;
+
+    const channel = supabase
+      .channel(`article-${article.id}`)
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "posts", filter: `id=eq.${article.id}` },
+        () => {
+          toast.info("This post has been removed.");
+          navigate("/");
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [article?.id, navigate]);
 
   if (isLoading) return <div className="flex min-h-[50vh] items-center justify-center text-muted-foreground">Loading…</div>;
   if (!article) return <Navigate to="/404" replace />;
