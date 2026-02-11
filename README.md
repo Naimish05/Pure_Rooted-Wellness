@@ -2,8 +2,6 @@
 
 A clean, minimalist blog platform built for sharing content on nutrition, yoga, routines, and mental wellness. Features a powerful markdown editor, real-time database, and secure authentication.
 
-![Preview](https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800&h=450&fit=crop)
-
 ## ✨ Features
 
 - **Modern Tech Stack**: Built with React, Vite, TypeScript, and Tailwind CSS.
